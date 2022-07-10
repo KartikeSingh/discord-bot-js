@@ -11,7 +11,7 @@ module.exports = async (client, interaction) => {
         const command = client.commands.get(interaction.commandName),
             // Getting guild member data
             member = interaction.guild.members.cache.get(interaction.member.id);
-
+console.log(command)
         // If not a valid command then ignore
         if (!command) return;
 
