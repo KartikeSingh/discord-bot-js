@@ -7,9 +7,10 @@ module.exports = {
         options: [],
     },
     timeout: 1000,
+    type: 1, //IMPORTANT
 
-    run: async (client, interaction) => {
-        interaction.reply({
+    run: async (client, message) => {
+        message.reply({
             embeds: [
                 new EmbedBuilder()
                     .setColor("Random")
@@ -20,7 +21,7 @@ module.exports = {
                 new ActionRowBuilder({
                     components: [
                         new ButtonBuilder({
-                            customId: `pingButton-${interaction.user.id}`,
+                            customId: `pingButton-${message.author.id}`,
                             style: 1,
                             label: "Ping",
                         })

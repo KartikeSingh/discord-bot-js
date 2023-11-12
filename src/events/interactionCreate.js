@@ -1,3 +1,4 @@
+const { EmbedBuilder } = require('discord.js');
 const { default: ms } = require('ms-prettify');
 
 module.exports = async (client, interaction) => {
@@ -8,11 +9,30 @@ module.exports = async (client, interaction) => {
 
         if (!command || (!command.dm && !interaction.guild)) return;
 
-        if (command.permissions?.length > 0 && !(command.permissions.some(v => member.permissions.has(v)))) return interaction.reply({ content: `You do not have any of the required permissions to use this command, required permissions : ${command.permissions.join(", ")}` })
+        if (command.category === "owner" && !client.owners.includes(interaction.user.id)) return interaction.reply({
+            embeds: [
+                new EmbedBuilder({
+                    title: "❌ Not Allowed",
+                    description: "You do not have enough permissions to use this command"
+                }).setColor("Red")
+            ]
+        });
 
-        const t = client.timeouts.get(`${interaction.user.id}_${command.name}`) || 0;
+        if (command.category === "admin" && !member.permissions.has("ManageGuild")) return interaction.reply({
+            embeds: [
+                new EmbedBuilder({
+                    title: "❌ Not Allowed",
+                    description: "You do not have enough permissions to use this command"
+                }).setColor("Red")
+            ]
+        });
 
-        if (Date.now() - t < 0) return interaction.reply({ content: `You are on a timeout of ${ms(t - Date.now(), { till: 'second' })}` });
+        if (command.permissions?.length > 0 && !(command.permissions.some(v => member.permissions.has(v)))) return interaction.reply({
+            embeds: [new EmbedBuilder({
+                title: "❌ Not Allowed",
+                description: `You do not have any of the required permissions to use this command, required permissions : ${command.permissions.join(", ")}`
+            }).setColor("Red")],
+        });
 
         let sub;
 
@@ -21,6 +41,10 @@ module.exports = async (client, interaction) => {
         } catch (e) {
             sub = "";
         }
+
+        const t = client.timeouts.get(`${interaction.user.id}_${command.data.name}_${sub}`) || 0;
+
+        if (Date.now() - t < 0) return interaction.reply({ content: `You are on a timeout of ${ms(t - Date.now(), { till: 'second' })}` });
 
         client.timeouts.set(`${interaction.user.id}_${command.data.name}_${sub}`, Date.now() + (command.timeout || 0));
 
