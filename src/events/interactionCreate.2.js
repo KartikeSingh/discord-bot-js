@@ -5,7 +5,7 @@ module.exports = async (client, interaction) => {
 
     const [commandName, ...args] = interaction.customId.split("-");
 
-    const command = client.buttons.get(commandName);
+    const command = client.buttons.get(commandName), member = interaction.guild.members.cache.get(interaction.member.id);
 
     if (!command) return;
 
