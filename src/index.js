@@ -27,3 +27,5 @@ const client = new Client({
 });
 
 client.login(process.env.TOKEN);
+
+process.on("uncaughtException", console.log);
