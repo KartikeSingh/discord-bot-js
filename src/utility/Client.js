@@ -5,9 +5,13 @@ const { readdirSync } = require('fs');
 const Discord = require('discord.js');
 const commandTypes = ["commands", "messageCommands", "buttons"];
 
+// Only list real entries (skips .DS_Store and other hidden/non-JS files)
+const listDirs = (path) => readdirSync(path, { withFileTypes: true }).filter(d => d.isDirectory() && !d.name.startsWith(".")).map(d => d.name);
+const listJs = (path) => readdirSync(path).filter(f => f.endsWith(".js"));
+
 module.exports = class Client extends Discord.Client {
-    events = readdirSync(join(__dirname, "../events"));
-    categories = readdirSync(join(__dirname, "../commands"));
+    events = listJs(join(__dirname, "../events"));
+    categories = listDirs(join(__dirname, "../commands"));
 
     owners = ["723049421021118535"];
 
@@ -20,28 +24,26 @@ module.exports = class Client extends Discord.Client {
     constructor(options) {
         super(options);
 
-        for (let i = 0; i < this.categories.length; i++) {
-            const commands = readdirSync(join(__dirname, `../commands/${this.categories[i]}`));
-
-            for (let j = 0; j < commands.length; j++) {
-                const command = require(`../commands/${this.categories[i]}/${commands[j]}`);
+        for (const category of this.categories) {
+            for (const file of listJs(join(__dirname, `../commands/${category}`))) {
+                const command = require(`../commands/${category}/${file}`);
 
                 if (!command || !command.run || !command.data) continue;
 
-                command.category = this.categories[i];
+                command.category = category;
 
-                if (command.alias) command.alias.forEach(alias => this.aliases.set(alias, command.data.name))
+                if (command.alias) command.alias.forEach(alias => this.aliases.set(alias, command.data.name));
 
                 this[commandTypes[command.type] || commandTypes[0]].set(command.data.name, command);
             }
         }
 
-        for (let i = 0; i < this.events.length; i++) {
-            const event = require(`../events/${this.events[i]}`);
+        for (const file of this.events) {
+            const event = require(`../events/${file}`);
 
             if (typeof event !== "function") continue;
 
-            this.on(this.events[i].split(".")[0], (...args) => event(this, ...args));
+            this.on(file.split(".")[0], (...args) => event(this, ...args));
         }
     }
 }

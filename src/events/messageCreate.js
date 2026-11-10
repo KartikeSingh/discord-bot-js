@@ -1,37 +1,26 @@
+const { EmbedBuilder } = require('discord.js');
+
+const notAllowed = (description) => ({
+    embeds: [new EmbedBuilder({ title: "❌ Not Allowed", description }).setColor("Red")]
+});
+
 module.exports = async (client, message) => {
     const prefix = client.prefix || "-";
 
     if (message.author.bot || !message.content.startsWith(prefix)) return;
 
-    const args = message.content.slice(prefix.length).split(/\s+/), commandName = args.shift()?.toLowerCase(), aliasName = client.aliases.get(commandName);
+    const args = message.content.slice(prefix.length).trim().split(/\s+/), commandName = args.shift()?.toLowerCase(), aliasName = client.aliases.get(commandName);
     const command = client.messageCommands.get(aliasName || commandName);
 
     if (!command) return;
-    
-    if (command.category === "owner" && !client.owners.includes(message.author.id)) return message.reply({
-        embeds: [
-            new EmbedBuilder({
-                title: "❌ Not Allowed",
-                description: "You do not have enough permissions to use this command"
-            }).setColor("Red")
-        ]
-    });
 
-    if (command.category === "admin" && !member.permissions.has("ManageGuild")) return message.reply({
-        embeds: [
-            new EmbedBuilder({
-                title: "❌ Not Allowed",
-                description: "You do not have enough permissions to use this command"
-            }).setColor("Red")
-        ]
-    });
+    const permissions = message.member?.permissions;
 
-    if (command.permissions?.length > 0 && !(command.permissions.some(v => member.permissions.has(v)))) return message.reply({
-        embeds: [new EmbedBuilder({
-            title: "❌ Not Allowed",
-            description: `You do not have any of the required permissions to use this command, required permissions : ${command.permissions.join(", ")}`
-        }).setColor("Red")],
-    });
+    if (command.category === "owner" && !client.owners.includes(message.author.id)) return message.reply(notAllowed("You do not have enough permissions to use this command"));
+
+    if (command.category === "admin" && !permissions?.has("ManageGuild")) return message.reply(notAllowed("You do not have enough permissions to use this command"));
+
+    if (command.permissions?.length > 0 && !command.permissions.some(v => permissions?.has(v))) return message.reply(notAllowed(`You do not have any of the required permissions to use this command, required permissions : ${command.permissions.join(", ")}`));
 
     const t = client.timeouts.get(`${message.author.id}_${command.data.name}`) || 0;
 
@@ -39,5 +28,10 @@ module.exports = async (client, message) => {
 
     client.timeouts.set(`${message.author.id}_${command.data.name}`, Date.now() + (command.timeout || 0));
 
-    command.run(client, message, args)
+    try {
+        await command.run(client, message, args);
+    } catch (e) {
+        console.error(e);
+        message.reply({ content: "There was an issue in executing the command" }).catch(() => { });
+    }
 }
